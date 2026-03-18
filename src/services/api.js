@@ -1,6 +1,7 @@
 
 
-async function uploadImagem(arquivo) {
+export default {
+    async function uploadImagem(arquivo) {
     setCarregando(true)
     setErro(null)
 
@@ -25,11 +26,12 @@ async function uploadImagem(arquivo) {
     console.log(dados)
 
     return dados   // { session_id, largura, altura }
-}
+},
 
 async function encerrarSessao() {
     // if (ws.current) ws.current.close()
     // if (sessionId) {
     //   await fetch(`${API_URL}/sessao/${sessionId}`, { method: "DELETE" })
     // }
+}
 }
