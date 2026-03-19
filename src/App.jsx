@@ -4,7 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import talhoes from "/fazenda_talhoes.json";
 import MapaFazenda from './components/MapaFazenda';
-import uploadImagem from './services/api'
+import {uploadImagem, encerrarSessao} from './services/api'
 
 const API_URL = "http://localhost:8000"
 
@@ -26,7 +26,7 @@ function App() {
   const handleChange = (e) => {
     const file = e.target.files[0];
     if (file) setImagemUrl(URL.createObjectURL(file));
-    uploadImagem(file)
+    uploadImagem(file, setCarregando, setErro, setSessionId)
   };
 
   return (

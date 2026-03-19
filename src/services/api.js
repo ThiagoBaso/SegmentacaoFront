@@ -1,7 +1,6 @@
+const API_URL = "http://localhost:8000"
 
-
-export default {
-    async function uploadImagem(arquivo) {
+async function uploadImagem(arquivo, setCarregando, setErro, setSessionId) {
     setCarregando(true)
     setErro(null)
 
@@ -26,7 +25,7 @@ export default {
     console.log(dados)
 
     return dados   // { session_id, largura, altura }
-},
+}
 
 async function encerrarSessao() {
     // if (ws.current) ws.current.close()
@@ -34,4 +33,5 @@ async function encerrarSessao() {
     //   await fetch(`${API_URL}/sessao/${sessionId}`, { method: "DELETE" })
     // }
 }
-}
+
+export { uploadImagem, encerrarSessao }
