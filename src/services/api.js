@@ -20,18 +20,126 @@ async function uploadImagem(arquivo, setCarregando, setErro, setSessionId) {
     setCarregando(false)
 
     // Abre WebSocket logo após o upload
-    //abrirWebSocket(dados.session_id)
+    abrirWebSocket(dados.session_id)
 
     console.log(dados)
 
     return dados   // { session_id, largura, altura }
 }
 
+function abrirWebSocket(sid) {
+    if (ws.current) ws.current.close()
+
+    ws.current = new WebSocket(`ws://localhost:8000/ws/${sid}`)
+
+    ws.current.onopen = () => {
+      console.log("WebSocket conectado")
+    }
+
+    // Trata todas as mensagens recebidas do servidor
+    ws.current.onmessage = (event) => {
+      const msg = JSON.parse(event.data)
+
+      switch (msg.tipo) {
+
+        // Prévia em tempo real enquanto o usuário clica
+        case "preview":
+          setPreview({
+            poligono:    msg.poligono,      // [[x,y], ...]
+            area_pixels: msg.area_pixels,
+            score:       msg.score,
+          })
+          break
+
+        // Talhão foi confirmado
+        case "talhao_confirmado":
+          setTalhoes(msg.todos_talhoes)
+          setPreview(null)
+          break
+
+        // Talhão foi desfeito
+        case "desfeito":
+          setTalhoes(msg.todos_talhoes)
+          break
+
+        // Pontos reiniciados
+        case "reiniciado":
+          setPreview(null)
+          break
+
+        // Polígono editado manualmente
+        case "poligono_editado":
+          setTalhoes(prev => prev.map(t =>
+            t.id === msg.id ? { ...t, area_pixels: msg.area_pixels } : t
+          ))
+          break
+
+        case "erro":
+          setErro(msg.mensagem)
+          break
+      }
+    }
+
+    ws.current.onerror = () => setErro("Erro na conexão com o servidor.")
+    ws.current.onclose = () => console.log("WebSocket encerrado")
+  }
+
+function enviar(dados) {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      setErro("WebSocket não conectado.")
+      return
+    }
+    ws.current.send(JSON.stringify(dados))
+  }
+
+  // Usuário clicou na imagem (clique esquerdo = incluir, direito = excluir)
+  function clicarPonto(x, y, label = 1) {
+    enviar({ acao: "ponto", x, y, label })
+  }
+
+  // Confirma o talhão em andamento e começa o próximo
+  function confirmarTalhao() {
+    enviar({ acao: "confirmar" })
+  }
+
+  // Desfaz o último talhão confirmado
+  function desfazer() {
+    enviar({ acao: "desfazer" })
+  }
+
+  // Reinicia os pontos do talhão em edição
+  function reiniciar() {
+    enviar({ acao: "reiniciar" })
+  }
+
+  // Usuário arrastou ponto no Leaflet — envia polígono editado
+  function editarPoligono(id, novoPoligono) {
+    enviar({ acao: "editar_poligono", id, poligono: novoPoligono })
+  }
+
+
 async function encerrarSessao() {
     // if (ws.current) ws.current.close()
     // if (sessionId) {
     //   await fetch(`${API_URL}/sessao/${sessionId}`, { method: "DELETE" })
     // }
+
+      return {
+    // Estado
+    //sessionId,
+    //talhoes,
+    //preview,
+    //carregando,
+    //erro,
+    // Ações
+    uploadImagem,
+    clicarPonto,
+    confirmarTalhao,
+    desfazer,
+    reiniciar,
+    editarPoligono,
+    encerrarSessao,
+  }
 }
 
 export { uploadImagem, encerrarSessao }

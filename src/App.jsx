@@ -4,7 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import talhoes from "/fazenda_talhoes.json";
 import MapaFazenda from './components/MapaFazenda';
-import {uploadImagem, encerrarSessao} from './services/api'
+import { uploadImagem, encerrarSessao } from './services/api'
 
 const API_URL = "http://localhost:8000"
 
@@ -20,7 +20,11 @@ function App() {
 
   // Limpa WebSocket ao desmontar
   useEffect(() => {
-    return () => encerrarSessao()
+    return () => encerrarSessao(sessionId,
+      talhoes,
+      preview,
+      carregando,
+      erro,)
   }, [])
 
   const handleChange = (e) => {
