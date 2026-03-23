@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-function MapaFazenda({ imagemUrl }) {
+
+function MapaFazenda({ imagemUrl, clicarPonto }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
 
@@ -41,7 +42,10 @@ function MapaFazenda({ imagemUrl }) {
   }, [imagemUrl]);
 
   return (
-    <div ref={mapRef} style={{ width: "100%", height: "500px" }} />
+      <div ref={mapRef} style={{ width: "100%", height: "500px" }}>
+        <button onClick={() => clicarPonto(750, 200, 1)} >clicar ponto</button>
+      </div>
+      
   );
 }
 

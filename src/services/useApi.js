@@ -1,6 +1,16 @@
 const API_URL = "http://localhost:8000"
+import { useState, useEffect, useRef, useCallback} from 'react'
 
-async function uploadImagem(arquivo, setCarregando, setErro, setSessionId) {
+export function useApi() {
+  const [sessionId, setSessionId] = useState(null)
+  const [talhoes, setTalhoes] = useState([])
+  const [preview, setPreview] = useState(null)
+  const [carregando, setCarregando] = useState(false)
+  const [erro, setErro] = useState(null)
+  const ws = useRef(null)
+
+
+  const uploadImagem = async (arquivo) => {
     setCarregando(true)
     setErro(null)
 
@@ -11,9 +21,9 @@ async function uploadImagem(arquivo, setCarregando, setErro, setSessionId) {
     const dados = await res.json()
 
     if (!res.ok) {
-        setErro(dados.detail)
-        setCarregando(false)
-        return null
+      setErro(dados.detail)
+      setCarregando(false)
+      return null
     }
 
     setSessionId(dados.session_id)
@@ -25,9 +35,9 @@ async function uploadImagem(arquivo, setCarregando, setErro, setSessionId) {
     console.log(dados)
 
     return dados   // { session_id, largura, altura }
-}
+  }
 
-function abrirWebSocket(sid) {
+  const abrirWebSocket = useCallback((sid) => {
     if (ws.current) ws.current.close()
 
     ws.current = new WebSocket(`ws://localhost:8000/ws/${sid}`)
@@ -44,10 +54,11 @@ function abrirWebSocket(sid) {
 
         // Prévia em tempo real enquanto o usuário clica
         case "preview":
+          console.log(msg)
           setPreview({
-            poligono:    msg.poligono,      // [[x,y], ...]
+            poligono: msg.poligono,      // [[x,y], ...]
             area_pixels: msg.area_pixels,
-            score:       msg.score,
+            score: msg.score,
           })
           break
 
@@ -82,9 +93,9 @@ function abrirWebSocket(sid) {
 
     ws.current.onerror = () => setErro("Erro na conexão com o servidor.")
     ws.current.onclose = () => console.log("WebSocket encerrado")
-  }
+  }, [])
 
-function enviar(dados) {
+  const enviar = (dados) => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       setErro("WebSocket não conectado.")
       return
@@ -95,6 +106,7 @@ function enviar(dados) {
   // Usuário clicou na imagem (clique esquerdo = incluir, direito = excluir)
   function clicarPonto(x, y, label = 1) {
     enviar({ acao: "ponto", x, y, label })
+    console.log('ponto enviado')
   }
 
   // Confirma o talhão em andamento e começa o próximo
@@ -117,29 +129,22 @@ function enviar(dados) {
     enviar({ acao: "editar_poligono", id, poligono: novoPoligono })
   }
 
-
-async function encerrarSessao() {
-    // if (ws.current) ws.current.close()
-    // if (sessionId) {
-    //   await fetch(`${API_URL}/sessao/${sessionId}`, { method: "DELETE" })
-    // }
-
-      return {
-    // Estado
-    //sessionId,
-    //talhoes,
-    //preview,
-    //carregando,
-    //erro,
-    // Ações
-    uploadImagem,
-    clicarPonto,
-    confirmarTalhao,
-    desfazer,
-    reiniciar,
-    editarPoligono,
-    encerrarSessao,
+  useEffect(() => {
+  return () => {
+    if (ws.current) {
+      console.log("Fechando WebSocket...")
+      ws.current.close()
+    }
   }
-}
+}, [])
 
-export { uploadImagem, encerrarSessao }
+return {
+  sessionId, talhoes, preview, carregando, erro,
+  uploadImagem,
+  clicarPonto,
+  confirmarTalhao,
+  desfazer,
+  reiniciar,
+  editarPoligono,
+}
+}
