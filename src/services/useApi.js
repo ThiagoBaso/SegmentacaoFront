@@ -27,7 +27,6 @@ export function useApi() {
     }
 
     setSessionId(dados.session_id)
-    setCarregando(false)
 
     // Abre WebSocket logo após o upload
     abrirWebSocket(dados.session_id)
@@ -44,6 +43,7 @@ export function useApi() {
 
     ws.current.onopen = () => {
       console.log("WebSocket conectado")
+      setCarregando(false)
     }
 
     // Trata todas as mensagens recebidas do servidor
@@ -65,6 +65,9 @@ export function useApi() {
         // Talhão foi confirmado
         case "talhao_confirmado":
           setTalhoes(msg.todos_talhoes)
+          console.log('talhoes')
+          console.log(msg)
+          console.log(talhoes)
           setPreview(null)
           break
 

@@ -8,7 +8,7 @@ import { useApi } from './services/useApi';
 const API_URL = "http://localhost:8000"
 
 function App() {
-  const [imagemUrl, setImagemUrl] = useState(null);
+  const [imagemUrl, setImagemUrl] = useState();
 
   const {
     talhoes, preview, carregando, erro,
@@ -24,7 +24,9 @@ function App() {
   return (
     <div className='main'>
       <input type="file" accept="image/*" onChange={handleChange} />
-      <MapaFazenda imagemUrl={imagemUrl} clicarPonto ={clicarPonto}/>
+        <MapaFazenda
+        imagemUrl={imagemUrl} clicarPonto ={clicarPonto} 
+        talhoes={talhoes} preview={preview} confirmarTalhao={confirmarTalhao}/>
     </div>
   )
 }
