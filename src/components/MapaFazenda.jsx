@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import '../App.css'
+import '../App.scss'
 
 
-function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao }) {
+function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
+  reiniciar, desfazer, carregando
+}) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const talhoesLayerRef = useRef([])
+  //const talhoesLayerRef = useRef([])
   const previewLayerRef = useRef(null)
   const pontosLayerRef = useRef([])
 
@@ -21,16 +23,18 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
   }
 
   function limparPontos() {
-  const map = mapInstanceRef.current
+    const map = mapInstanceRef.current
 
-  pontosLayerRef.current.forEach(m => map.removeLayer(m))
-  pontosLayerRef.current = []
-}
+    pontosLayerRef.current.forEach(m => map.removeLayer(m))
+    pontosLayerRef.current = []
+  }
 
   useEffect(() => {
     const map = L.map(mapRef.current, {
       crs: L.CRS.Simple,
       minZoom: -3,
+      zoomDelta: 0.25,
+      zoomSnap: 0
     });
     mapInstanceRef.current = map;
     return () => map.remove();
@@ -97,6 +101,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
 
   }, [preview])
 
+  //DETECTA CLIQUES NO MOUSE//
   useEffect(() => {
     if (!mapInstanceRef.current) return
 
@@ -137,10 +142,51 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
 
   }, [clicarPonto])
 
+  //DETECTA CLIQUES NO TECLADO//
+  useEffect(() => {
+
+    function handleKeyDown(e) {
+
+      if (e.repeat) return
+
+      if (["INPUT", "TEXTAREA"].includes(e.target.tagName)) return
+
+      switch (e.key.toLowerCase()) {
+
+        case "e":
+          e.preventDefault()
+          confirmarTalhao()
+          console.log('E press')
+          break
+
+        case "z":
+          desfazer()
+          console.log('Z press')
+          break
+
+        case "r":
+          reiniciar()
+          console.log('R press')
+          break
+
+        case "escape":
+          reiniciar()
+          console.log('ESC press')
+          break
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+
+  }, [confirmarTalhao, reiniciar, desfazer])
 
   return (
-    <div className='main'>
-      
+    <div className='centerColun'>
+
       {preview && (
         <p>
           Prévia — Área: {preview.area_pixels.toLocaleString()} px²
@@ -148,10 +194,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
         </p>
       )}
 
-      <button onClick={() => clicarPonto(750, 200, 1)} >clicar ponto</button>
-      <button onClick={() => confirmarTalhao()} >confirmar</button>
-
-      <div ref={mapRef} style={{ width: "80%", height: "700px" }} />
+      <div ref={mapRef} className='map' />
     </div>
   );
 }
