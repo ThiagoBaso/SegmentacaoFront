@@ -1,57 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../styles/FazendaSidebar.scss";
 import MapaFazenda from '../components/MapaFazenda';
 import { useApi } from '../services/useApi';
 import "leaflet/dist/leaflet.css";
-
-// ─── MOCK DATA ────────────────────────────────────────────────────────────────
-// Substitua por: const { fazendas } = await fetch('/api/fazendas').then(r => r.json())
-const MOCK_FAZENDAS = [
-  {
-    id: "faz_001",
-    nome: "Fazenda Boa Vista",
-    thumbnail: null,
-    localizacao: { cidade: "Tupã", estado: "SP" },
-    area_total_ha: 320.5,
-    talhoes: [
-      { id: "tal_001", nome: "Talhão A", area_ha: 85.2, cor: "#00FFAA" },
-      { id: "tal_002", nome: "Talhão B", area_ha: 112.0, cor: "#00AAFF" },
-    ],
-  },
-  {
-    id: "faz_002",
-    nome: "Fazenda Santa Cruz",
-    thumbnail: null,
-    localizacao: { cidade: "Marília", estado: "SP" },
-    area_total_ha: 540.0,
-    talhoes: [
-      { id: "tal_003", nome: "Talhão C", area_ha: 200.0, cor: "#FFD700" },
-      { id: "tal_004", nome: "Talhão D", area_ha: 180.5, cor: "#FF6B35" },
-      { id: "tal_005", nome: "Talhão E", area_ha: 159.5, cor: "#CC44FF" },
-    ],
-  },
-  {
-    id: "faz_003",
-    nome: "Fazenda São Pedro",
-    thumbnail: null,
-    localizacao: { cidade: "Assis", estado: "SP" },
-    area_total_ha: 210.0,
-    talhoes: [
-      { id: "tal_006", nome: "Talhão F", area_ha: 210.0, cor: "#44FFDD" },
-    ],
-  },
-  {
-    id: "faz_004",
-    nome: "Fazenda Ipê",
-    thumbnail: null,
-    localizacao: { cidade: "Tupã", estado: "SP" },
-    area_total_ha: 890.75,
-    talhoes: [
-      { id: "tal_007", nome: "Talhão G", area_ha: 445.0, cor: "#FF4466" },
-      { id: "tal_008", nome: "Talhão H", area_ha: 445.75, cor: "#88FF44" },
-    ],
-  },
-];
 
 // ─── SUB-COMPONENTES ──────────────────────────────────────────────────────────
 
@@ -116,12 +67,7 @@ function StatCard({ label, value }) {
   );
 }
 
-function DetailPanel({ fazenda, imagemUrl }) {
-
-  const {
-    talhoes, preview, carregando, erro,
-     clicarPonto, confirmarTalhao, desfazer, reiniciar
-  } = useApi()
+function DetailPanel({ fazenda, imagemUrl, segmentacao }) {
 
   if (!fazenda) {
     return (
@@ -148,10 +94,14 @@ function DetailPanel({ fazenda, imagemUrl }) {
 
         <div className="detail-panel__map">
           <MapaFazenda
-            imagemUrl={imagemUrl} clicarPonto={clicarPonto}
-            talhoes={talhoes} preview={preview} confirmarTalhao={confirmarTalhao}
-            desfazer={desfazer} reiniciar={reiniciar} carregando={carregando} />
+            imagemUrl={imagemUrl}
+            {...segmentacao}
+          />
         </div>
+
+        {segmentacao.erro && (
+          <div className="detail-panel__error">{segmentacao.erro}</div>
+        )}
 
         {/* <div className="detail-panel__stats">
           <StatCard label="Área total" value={`${fazenda.area_total_ha.toFixed(1)} ha`} />
@@ -179,10 +129,10 @@ export default function FazendaSidebar() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [imagemUrl, setImagemUrl] = useState();
+  const [fazendas, setFazendas] = useState([])
 
-    const {
-    uploadImagem
-  } = useApi()
+  const segmentacao = useApi();
+  const { uploadImagem } = segmentacao;
 
   const handleChange = (e) => {
     const file = e.target.files[0];
@@ -190,7 +140,22 @@ export default function FazendaSidebar() {
     uploadImagem(file)
   };
 
-  const filtered = MOCK_FAZENDAS.filter(
+  useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/fazendas');
+      const result = await response.json();
+      //console.log(result)
+      setFazendas(result);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  fetchData();
+}, []);
+
+  const filtered = fazendas.filter(
     (f) =>
       f.nome.toLowerCase().includes(search.toLowerCase()) ||
       f.localizacao.cidade.toLowerCase().includes(search.toLowerCase())
@@ -256,7 +221,11 @@ export default function FazendaSidebar() {
       </aside>
 
       {/* ── PAINEL DIREITO ── */}
-      <DetailPanel fazenda={selected} imagemUrl={imagemUrl} />
+      <DetailPanel
+        fazenda={selected}
+        imagemUrl={imagemUrl}
+        segmentacao={segmentacao}
+      />
     </div>
   );
 }
