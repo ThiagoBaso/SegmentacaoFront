@@ -1,0 +1,106 @@
+@import url('https://googleapis.com');
+
+// Fundo: #0D0D0D — preto profundo igual ao hero do site
+// Superfície da sidebar: #141414 — cinza escuro sutil
+// Accent: #E8541A — laranja exato do site (botões, labels, destaques)
+// Texto primário: #E8E8E8 — quase branco
+// Texto secundário: #7A7A7A — cinza médio
+// Bordas: #2A2A2A — sutil, discreto
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.main {
+  width: 100vw;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  flex-direction: row;
+  background-color: #3b3b3b;
+
+  .rigthbar {
+    width: 20vw;
+    min-width: 200px;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    background-color: #292929;
+    padding-top: 10px;
+
+  }
+
+  .leftbar {
+    width: 20vw;
+    min-width: 200px;
+    height: 100vh;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    background-color: #292929;
+    padding-top: 10px;
+
+    .fazendasList {
+      background-color: aqua;
+      width: 100%;
+      height: 100%;
+    }
+
+
+    input[type="file"] {
+      display: none;
+    }
+
+    label {
+      padding: 8px 10px;
+      width: 90%;
+      height: 50px;
+      background-color: #3b3b3b;
+      color: #FFF;
+      text-transform: uppercase;
+      text-align: center;
+      display: block;
+      margin-top: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      border-radius: 2px;
+    }
+  }
+
+  .centerColun {
+    width: 60vw;
+    min-width: 450px;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+
+    .map {
+      width: 100%;
+      height: 80%;
+    }
+
+    .leaflet-container {
+      background: #3b3b3b;
+      outline: 0;
+    }
+
+
+  }
+
+
+
+}

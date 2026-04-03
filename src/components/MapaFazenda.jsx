@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import '../App.scss'
+import '../styles/App.scss'
 
 
 function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
@@ -9,9 +9,10 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
 }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  //const talhoesLayerRef = useRef([])
+  const talhoesLayerRef = useRef([])
   const previewLayerRef = useRef(null)
   const pontosLayerRef = useRef([])
+  const imageLayerRef = useRef(null)
 
   const [height, setHeight] = useState(null)
 
@@ -40,66 +41,99 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     return () => map.remove();
   }, []);
 
-  //RENDERIZA IMAGEM E TALHOES//
+  //RENDERIZA IMAGEM//
   useEffect(() => {
-    if (!imagemUrl || !mapInstanceRef.current) return;
+  if (!imagemUrl || !mapInstanceRef.current) return
 
-    const map = mapInstanceRef.current;
-    const img = new Image();
+  const map = mapInstanceRef.current
+  const img = new Image()
 
-    console.log(talhoes)
+  img.onload = () => {
 
-    img.onload = () => {
-      const bounds = [[0, 0], [img.height, img.width]];
-      L.imageOverlay(imagemUrl, bounds).addTo(map);
-      map.fitBounds(bounds);
+    const bounds = [[0, 0], [img.height, img.width]]
 
-      setHeight(img.height)
-
-      // Adiciona os polígonos de cada talhão
-      talhoes.forEach((talhao) => {
-        //    Leaflet usa [lat, lng] == [y, x], por isso inverte [x, y] → [y, x]
-        const pontos = talhao.poligono.map(([x, y]) => [img.height - y, x]);
-
-        L.polygon(pontos, { color: "green", weight: 2 })
-          .addTo(map)
-          .bindPopup(`Talhão ${talhao.id} — ${talhao.area_pixels} px²`);
-      });
-    };
-
-    img.src = imagemUrl;
-
-    limparPontos()
-  }, [imagemUrl, talhoes]);
-
-  //RENDERIZA PREVIEW//
-  useEffect(() => {
-    if (!preview || !mapInstanceRef.current) return
-
-    const map = mapInstanceRef.current
-
-    // Remove preview anterior
-    if (previewLayerRef.current) {
-      map.removeLayer(previewLayerRef.current)
+    // remove imagem anterior
+    if (imageLayerRef.current) {
+      map.removeLayer(imageLayerRef.current)
     }
 
-    // Converte pontos [x,y] → [y,x]
-    const pontos = preview.poligono.map(([x, y]) => [height - y, x])
+    // adiciona nova
+    imageLayerRef.current = L.imageOverlay(imagemUrl, bounds).addTo(map)
 
-    // Cria novo polígono
+    requestAnimationFrame(() => {
+  map.invalidateSize()
+  map.fitBounds(bounds)
+})
+
+    setHeight(img.height)
+  }
+
+  img.src = imagemUrl
+
+  // opcional: limpar pontos ao trocar imagem
+  limparPontos()
+
+}, [imagemUrl])
+
+  //RENDERIZA PREVIEW//
+useEffect(() => {
+  if (!mapInstanceRef.current) return
+
+  const map = mapInstanceRef.current
+
+  // Remove o preview anterior, inclusive quando preview virar null
+  if (previewLayerRef.current) {
+    map.removeLayer(previewLayerRef.current)
+    previewLayerRef.current = null
+  }
+
+  // Se não houver preview novo, para por aqui
+  if (!preview) return
+
+  const pontos = preview.poligono.map(([x, y]) => [height - y, x])
+
+  const layer = L.polygon(pontos, {
+    color: "yellow",
+    weight: 2,
+    dashArray: "5,5"
+  }).addTo(map)
+
+  layer.bindPopup(
+    `Preview — ${preview.area_pixels} px² | Score: ${(preview.score * 100).toFixed(1)}%`
+  )
+
+  previewLayerRef.current = layer
+}, [preview, height])
+
+
+  //RENDERIZA TALHOES//
+  useEffect(() => {
+  if (!mapInstanceRef.current || !height) return
+
+  const map = mapInstanceRef.current
+
+  // remove antigos
+  talhoesLayerRef.current.forEach(layer => {
+    map.removeLayer(layer)
+  })
+  talhoesLayerRef.current = []
+
+  // desenha novos
+  talhoes.forEach((talhao) => {
+
+    const pontos = talhao.poligono.map(([x, y]) => [height - y, x])
+
     const layer = L.polygon(pontos, {
-      color: "yellow",
-      weight: 2,
-      dashArray: "5,5" // deixa visual diferente
-    }).addTo(map)
+      color: "green",
+      weight: 2
+    })
+      .addTo(map)
+      .bindPopup(`Talhão ${talhao.id} — ${talhao.area_pixels} px²`)
 
-    layer.bindPopup(
-      `Preview — ${preview.area_pixels} px² | Score: ${(preview.score * 100).toFixed(1)}%`
-    )
+    talhoesLayerRef.current.push(layer)
+  })
 
-    previewLayerRef.current = layer
-
-  }, [preview])
+}, [talhoes, height])
 
   //DETECTA CLIQUES NO MOUSE//
   useEffect(() => {
@@ -156,22 +190,26 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
         case "e":
           e.preventDefault()
           confirmarTalhao()
+          limparPontos()
           console.log('E press')
           break
 
         case "z":
           desfazer()
           console.log('Z press')
+          limparPontos()
           break
 
         case "r":
           reiniciar()
           console.log('R press')
+          limparPontos()
           break
 
         case "escape":
           reiniciar()
           console.log('ESC press')
+          limparPontos()
           break
       }
     }
@@ -185,7 +223,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
   }, [confirmarTalhao, reiniciar, desfazer])
 
   return (
-    <div className='centerColun'>
+    <div style={{width:'100%', height:'100%'}}>
 
       {preview && (
         <p>
@@ -194,7 +232,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
         </p>
       )}
 
-      <div ref={mapRef} className='map' />
+      <div ref={mapRef} style={{width:'100%', height:'80%'}} />
     </div>
   );
 }
