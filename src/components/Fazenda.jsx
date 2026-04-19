@@ -11,11 +11,16 @@ export default function Fazenda() {
   const segmentacao = useApi();
   const { uploadImagem } = segmentacao;
 
-  const handleChange = (e) => {
+
+const handleChange = async (e) => {
     const file = e.target.files[0];
-    if (file) setImagemUrl(URL.createObjectURL(file));
-    uploadImagem(file)
-  };
+    if (!file) return;
+
+    const dados = await uploadImagem(file);
+    if (!dados) return; // erro já tratado dentro do uploadImagem
+
+    setImagemUrl(`http://localhost:8000/imagem/${dados.session_id}`);
+};
 
   if (!imagemUrl) {
     return (

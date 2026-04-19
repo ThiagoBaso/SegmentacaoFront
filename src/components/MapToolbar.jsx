@@ -72,7 +72,7 @@ export default function MapToolbar({
   onDelete,
   onReset,
 }) {
-  const [activeTool, setActiveTool] = useState('segment');
+  const [activeTool, setActiveTool] = useState('0');
 
   const callbacks = { segment: onSegment, drag: onDrag, confirm: onConfirm, delete: onDelete, reset: onReset };
 

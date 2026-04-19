@@ -3,6 +3,8 @@ import { useState, useEffect, useRef, useCallback} from 'react'
 
 export function useApi() {
   const [sessionId, setSessionId] = useState(null)
+  const [boundsreais,setBoundsReais] = useState(null)
+  const [georeferenciada,setGeoreferenciada] = useState()
   const [talhoes, setTalhoes] = useState([])
   const [preview, setPreview] = useState(null)
   const [carregando, setCarregando] = useState(false)
@@ -10,7 +12,7 @@ export function useApi() {
   const ws = useRef(null)
 
 
-  const uploadImagem = async (arquivo) => {
+const uploadImagem = async (arquivo) => {
     setCarregando(true)
     setErro(null)
 
@@ -21,20 +23,20 @@ export function useApi() {
     const dados = await res.json()
 
     if (!res.ok) {
-      setErro(dados.detail)
-      setCarregando(false)
-      return null
+        setErro(dados.detail)
+        setCarregando(false)
+        return null
     }
 
-    setSessionId(dados.session_id)
+    setSessionId(dados.session_id)       // ← corrigido: snake_case
+    setBoundsReais(dados.bounds)
+    setGeoreferenciada(dados.georeferenciada)
 
-    // Abre WebSocket logo após o upload
     abrirWebSocket(dados.session_id)
 
-    console.log(dados)
-
-    return dados   // { session_id, largura, altura }
-  }
+    setCarregando(false)                 // ← estava faltando no caminho feliz
+    return dados
+}
 
   const abrirWebSocket = useCallback((sid) => {
     if (ws.current) ws.current.close()
@@ -142,7 +144,7 @@ export function useApi() {
 }, [])
 
 return {
-  sessionId, talhoes, preview, carregando, erro,
+  sessionId, talhoes, preview, carregando, erro, boundsreais, georeferenciada,
   uploadImagem,
   clicarPonto,
   confirmarTalhao,

@@ -6,7 +6,7 @@ import MapToolbar from "./MapToolbar";
 
 
 function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
-  reiniciar, desfazer, carregando
+  reiniciar, desfazer, carregando, sessionId, boundsReais
 }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -16,6 +16,9 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
   const imageLayerRef = useRef(null)
 
   const [height, setHeight] = useState(null)
+  const [modo, setModo] = useState(0)
+
+  console.log("MODO:", modo)
 
   function latLngParaPixel(latlng, alturaImagem) {
     return {
@@ -24,11 +27,37 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     }
   }
 
+  function clickConfirm() {
+    confirmarTalhao()
+    limparPontos()
+    console.log('E press')
+  }
+
+  function clickReset() {
+    reiniciar()
+    limparPontos()
+    console.log('R press')
+  }
+
+  function clickDesfazer() {
+    desfazer()
+    limparPontos()
+    console.log('Z press')
+  }
+
   function limparPontos() {
     const map = mapInstanceRef.current
 
     pontosLayerRef.current.forEach(m => map.removeLayer(m))
     pontosLayerRef.current = []
+  }
+
+  function alterarModo(x) {
+    if (x == modo) { setModo(0) }
+    else if (x != modo) { setModo(x) }
+
+    limparPontos()
+    reiniciar()
   }
 
   useEffect(() => {
@@ -44,98 +73,134 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
   }, []);
 
   //RENDERIZA IMAGEM//
-  useEffect(() => {
-  if (!imagemUrl || !mapInstanceRef.current) return
+  // useEffect(() => {
+  //   if (!imagemUrl || !mapInstanceRef.current) return
 
-  const map = mapInstanceRef.current
-  const img = new Image()
+  //   const map = mapInstanceRef.current
+  //   const img = new Image()
 
-  img.onload = () => {
+  //   img.onload = () => {
 
-    const bounds = [[0, 0], [img.height, img.width]]
+  //     const bounds = [[0, 0], [img.height, img.width]]
 
-    // remove imagem anterior
+  //     // remove imagem anterior
+  //     if (imageLayerRef.current) {
+  //       map.removeLayer(imageLayerRef.current)
+  //     }
+
+  //     // adiciona nova
+  //     imageLayerRef.current = L.imageOverlay(imagemUrl, bounds).addTo(map)
+
+  //     requestAnimationFrame(() => {
+  //       map.invalidateSize()
+  //       map.fitBounds(bounds)
+  //     })
+
+  //     setHeight(img.height)
+  //   }
+
+  //   img.src = imagemUrl
+
+  //   //limpar pontos ao trocar imagem
+  //   limparPontos()
+
+  // }, [imagemUrl])
+
+useEffect(() => {
+    if (!sessionId || !mapInstanceRef.current) return
+
+    const map = mapInstanceRef.current
+
     if (imageLayerRef.current) {
-      map.removeLayer(imageLayerRef.current)
+        map.removeLayer(imageLayerRef.current)
     }
 
-    // adiciona nova
-    imageLayerRef.current = L.imageOverlay(imagemUrl, bounds).addTo(map)
+    
 
-    requestAnimationFrame(() => {
-  map.invalidateSize()
-  map.fitBounds(bounds)
-})
+    if (boundsReais) {
+        // Imagem georeferenciada: usa bounds lat/lng vindos do backend
+        imageLayerRef.current = L.imageOverlay(imagemUrl, boundsReais).addTo(map)
+        requestAnimationFrame(() => {
+            map.invalidateSize()
+            map.fitBounds(boundsReais)
+        })
+    } else {
+        // Fallback: imagem sem georeferência (comportamento original)
+        const img = new Image()
+        img.onload = () => {
+            const bounds = [[0, 0], [img.height, img.width]]
+            imageLayerRef.current = L.imageOverlay(imagemUrl, bounds).addTo(map)
+            requestAnimationFrame(() => {
+                map.invalidateSize()
+                map.fitBounds(bounds)
+            })
+            setHeight(img.height)
+        }
+        img.src = imagemUrl
+    }
 
-    setHeight(img.height)
-  }
-
-  img.src = imagemUrl
-
-  // opcional: limpar pontos ao trocar imagem
-  limparPontos()
-
-}, [imagemUrl])
+    limparPontos()
+}, [sessionId, boundsReais])
 
   //RENDERIZA PREVIEW//
-useEffect(() => {
-  if (!mapInstanceRef.current) return
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
 
-  const map = mapInstanceRef.current
+    const map = mapInstanceRef.current
 
-  // Remove o preview anterior, inclusive quando preview virar null
-  if (previewLayerRef.current) {
-    map.removeLayer(previewLayerRef.current)
-    previewLayerRef.current = null
-  }
+    // Remove o preview anterior, inclusive quando preview virar null
+    if (previewLayerRef.current) {
+      map.removeLayer(previewLayerRef.current)
+      previewLayerRef.current = null
+    }
 
-  // Se não houver preview novo, para por aqui
-  if (!preview) return
+    // Se não houver preview novo, para por aqui
+    if (!preview) return
 
-  const pontos = preview.poligono.map(([x, y]) => [height - y, x])
+    const pontos = preview.poligono.map(([x, y]) => [height - y, x])
 
-  const layer = L.polygon(pontos, {
-    color: "yellow",
-    weight: 2,
-    dashArray: "5,5"
-  }).addTo(map)
+    const layer = L.polygon(pontos, {
+      color: "yellow",
+      weight: 2,
+      dashArray: "5,5"
+    }).addTo(map)
 
-  layer.bindPopup(
-    `Preview — ${preview.area_pixels} px² | Score: ${(preview.score * 100).toFixed(1)}%`
-  )
+    layer.bindPopup(
+      `Preview — ${preview.area_pixels} px² | Score: ${(preview.score * 100).toFixed(1)}%`
+    )
 
-  previewLayerRef.current = layer
-}, [preview, height])
+    previewLayerRef.current = layer
+  }, [preview, height])
 
 
   //RENDERIZA TALHOES//
   useEffect(() => {
-  if (!mapInstanceRef.current || !height) return
+    if (!mapInstanceRef.current || !height) return
 
-  const map = mapInstanceRef.current
+    const map = mapInstanceRef.current
 
-  // remove antigos
-  talhoesLayerRef.current.forEach(layer => {
-    map.removeLayer(layer)
-  })
-  talhoesLayerRef.current = []
-
-  // desenha novos
-  talhoes.forEach((talhao) => {
-
-    const pontos = talhao.poligono.map(([x, y]) => [height - y, x])
-
-    const layer = L.polygon(pontos, {
-      color: "green",
-      weight: 2
+    // remove antigos
+    talhoesLayerRef.current.forEach(layer => {
+      map.removeLayer(layer)
     })
-      .addTo(map)
-      .bindPopup(`Talhão ${talhao.id} — ${talhao.area_pixels} px²`)
+    talhoesLayerRef.current = []
 
-    talhoesLayerRef.current.push(layer)
-  })
+    // desenha novos
+    talhoes.forEach((talhao) => {
 
-}, [talhoes, height])
+      const pontos = talhao.poligono.map(([x, y]) => [height - y, x])
+
+      const layer = L.polygon(pontos, {
+        color: "green",
+        weight: 2
+      })
+        .addTo(map)
+        .bindPopup(`Talhão ${talhao.id} — ${talhao.area_pixels} px²`)
+
+      talhoesLayerRef.current.push(layer)
+    })
+
+  }, [talhoes, height])
 
   //DETECTA CLIQUES NO MOUSE//
   useEffect(() => {
@@ -144,15 +209,18 @@ useEffect(() => {
     const map = mapInstanceRef.current
 
     function onClick(e) {
-      const { x, y } = latLngParaPixel(e.latlng, height)
-      console.log(x, y)
-      clicarPonto(x, y, 1)
 
-      const marker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
-        radius: 5,
-        color: "green"
-      }).addTo(map)
-      pontosLayerRef.current.push(marker)
+      if (modo == 1) {
+        const { x, y } = latLngParaPixel(e.latlng, height)
+        console.log(x, y)
+        clicarPonto(x, y, 1)
+
+        const marker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
+          radius: 5,
+          color: "green"
+        }).addTo(map)
+        pontosLayerRef.current.push(marker)
+      }
     }
 
     function onRightClick(e) {
@@ -176,7 +244,7 @@ useEffect(() => {
       map.off("contextmenu", onRightClick)
     }
 
-  }, [clicarPonto])
+  }, [clicarPonto, modo])
 
   //DETECTA CLIQUES NO TECLADO//
   useEffect(() => {
@@ -191,27 +259,19 @@ useEffect(() => {
 
         case "e":
           e.preventDefault()
-          confirmarTalhao()
-          limparPontos()
-          console.log('E press')
+          clickConfirm()
           break
 
         case "z":
-          desfazer()
-          console.log('Z press')
-          limparPontos()
+
           break
 
         case "r":
-          reiniciar()
-          console.log('R press')
-          limparPontos()
+          clickReset()
           break
 
         case "escape":
-          reiniciar()
-          console.log('ESC press')
-          limparPontos()
+          //clickReset()
           break
       }
     }
@@ -228,9 +288,11 @@ useEffect(() => {
     <div className="map-shell">
       <div className="map-shell__toolbar">
         <MapToolbar
-          onConfirm={confirmarTalhao}
-          onDelete={desfazer}
-          onReset={reiniciar}
+          onSegment={() => (alterarModo(1))}
+          onDrag={() => (alterarModo(2))}
+          onConfirm={() => (clickConfirm())}
+          onDelete={() => (clickDesfazer())}
+          onReset={() => (clickReset())}
         />
       </div>
 
