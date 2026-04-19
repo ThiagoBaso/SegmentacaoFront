@@ -4,9 +4,8 @@ import "leaflet/dist/leaflet.css";
 import '../styles/App.scss'
 import MapToolbar from "./MapToolbar";
 
-
 function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
-  reiniciar, desfazer, carregando, sessionId, boundsReais
+  reiniciar, desfazer, carregando, sessionId, boundsReais, largura, altura
 }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -18,146 +17,113 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
   const [height, setHeight] = useState(null)
   const [modo, setModo] = useState(0)
 
-  console.log("MODO:", modo)
-
-  function latLngParaPixel(latlng, alturaImagem) {
-    return {
-      x: latlng.lng,
-      y: alturaImagem - latlng.lat
+  // Converte pixel (SAM) → lat/lng (Leaflet) considerando bounds reais
+  function pixelParaLatLng(x, y, imgLargura, imgAltura) {
+    if (boundsReais) {
+      const [[latMin, lngMin], [latMax, lngMax]] = boundsReais
+      const lng = lngMin + (x / imgLargura) * (lngMax - lngMin)
+      const lat = latMax - (y / imgAltura) * (latMax - latMin)
+      return [lat, lng]
     }
+    // fallback CRS.Simple: y invertido
+    return [imgAltura - y, x]
   }
 
-  function clickConfirm() {
-    confirmarTalhao()
-    limparPontos()
-    console.log('E press')
+  // Converte clique lat/lng (Leaflet) → pixel (SAM)
+  function latLngParaPixel(latlng, imgLargura, imgAltura) {
+    if (boundsReais) {
+      const [[latMin, lngMin], [latMax, lngMax]] = boundsReais
+      const x = Math.round((latlng.lng - lngMin) / (lngMax - lngMin) * imgLargura)
+      const y = Math.round((latMax - latlng.lat) / (latMax - latMin) * imgAltura)
+      return { x, y }
+    }
+    // fallback CRS.Simple
+    return { x: latlng.lng, y: imgAltura - latlng.lat }
   }
 
-  function clickReset() {
-    reiniciar()
-    limparPontos()
-    console.log('R press')
-  }
-
-  function clickDesfazer() {
-    desfazer()
-    limparPontos()
-    console.log('Z press')
-  }
+  function clickConfirm() { confirmarTalhao(); limparPontos() }
+  function clickReset() { reiniciar(); limparPontos() }
+  function clickDesfazer() { desfazer(); limparPontos() }
 
   function limparPontos() {
     const map = mapInstanceRef.current
-
     pontosLayerRef.current.forEach(m => map.removeLayer(m))
     pontosLayerRef.current = []
   }
 
   function alterarModo(x) {
-    if (x == modo) { setModo(0) }
-    else if (x != modo) { setModo(x) }
-
+    setModo(prev => prev === x ? 0 : x)
     limparPontos()
     reiniciar()
   }
 
+  // INICIALIZA MAPA — CRS depende de georeferência
   useEffect(() => {
+    const crs = boundsReais ? L.CRS.EPSG3857 : L.CRS.Simple
+
     const map = L.map(mapRef.current, {
-      crs: L.CRS.Simple,
-      minZoom: -3,
+      crs,
+      minZoom: boundsReais ? 1 : -3,
       zoomDelta: 0.25,
       zoomSnap: 0,
       zoomControl: false,
+      attributionControl: false
     });
     mapInstanceRef.current = map;
     return () => map.remove();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  //RENDERIZA IMAGEM//
-  // useEffect(() => {
-  //   if (!imagemUrl || !mapInstanceRef.current) return
-
-  //   const map = mapInstanceRef.current
-  //   const img = new Image()
-
-  //   img.onload = () => {
-
-  //     const bounds = [[0, 0], [img.height, img.width]]
-
-  //     // remove imagem anterior
-  //     if (imageLayerRef.current) {
-  //       map.removeLayer(imageLayerRef.current)
-  //     }
-
-  //     // adiciona nova
-  //     imageLayerRef.current = L.imageOverlay(imagemUrl, bounds).addTo(map)
-
-  //     requestAnimationFrame(() => {
-  //       map.invalidateSize()
-  //       map.fitBounds(bounds)
-  //     })
-
-  //     setHeight(img.height)
-  //   }
-
-  //   img.src = imagemUrl
-
-  //   //limpar pontos ao trocar imagem
-  //   limparPontos()
-
-  // }, [imagemUrl])
-
-useEffect(() => {
-    if (!sessionId || !mapInstanceRef.current) return
+  // RENDERIZA IMAGEM
+  useEffect(() => {
+    if (!imagemUrl || !mapInstanceRef.current) return
 
     const map = mapInstanceRef.current
 
     if (imageLayerRef.current) {
-        map.removeLayer(imageLayerRef.current)
+      map.removeLayer(imageLayerRef.current)
     }
 
-    
-
     if (boundsReais) {
-        // Imagem georeferenciada: usa bounds lat/lng vindos do backend
-        imageLayerRef.current = L.imageOverlay(imagemUrl, boundsReais).addTo(map)
-        requestAnimationFrame(() => {
-            map.invalidateSize()
-            map.fitBounds(boundsReais)
-        })
+      imageLayerRef.current = L.imageOverlay(imagemUrl, boundsReais).addTo(map)
+      requestAnimationFrame(() => {
+        map.invalidateSize()
+        map.fitBounds(boundsReais)
+      })
+      // altura/largura vêm como props do backend
+      setHeight(altura)
     } else {
-        // Fallback: imagem sem georeferência (comportamento original)
-        const img = new Image()
-        img.onload = () => {
-            const bounds = [[0, 0], [img.height, img.width]]
-            imageLayerRef.current = L.imageOverlay(imagemUrl, bounds).addTo(map)
-            requestAnimationFrame(() => {
-                map.invalidateSize()
-                map.fitBounds(bounds)
-            })
-            setHeight(img.height)
-        }
-        img.src = imagemUrl
+      const img = new Image()
+      img.onload = () => {
+        const bounds = [[0, 0], [img.height, img.width]]
+        imageLayerRef.current = L.imageOverlay(imagemUrl, bounds).addTo(map)
+        requestAnimationFrame(() => {
+          map.invalidateSize()
+          map.fitBounds(bounds)
+        })
+        setHeight(img.height)
+      }
+      img.src = imagemUrl
     }
 
     limparPontos()
-}, [sessionId, boundsReais])
+  }, [imagemUrl, boundsReais])
 
-  //RENDERIZA PREVIEW//
+  // RENDERIZA PREVIEW
   useEffect(() => {
-    if (!mapInstanceRef.current) return
+    if (!mapInstanceRef.current || !height) return
 
     const map = mapInstanceRef.current
 
-    // Remove o preview anterior, inclusive quando preview virar null
     if (previewLayerRef.current) {
       map.removeLayer(previewLayerRef.current)
       previewLayerRef.current = null
     }
 
-    // Se não houver preview novo, para por aqui
     if (!preview) return
 
-    const pontos = preview.poligono.map(([x, y]) => [height - y, x])
+    const pontos = preview.poligono.map(([x, y]) =>
+      pixelParaLatLng(x, y, largura, altura)
+    )
 
     const layer = L.polygon(pontos, {
       color: "yellow",
@@ -172,66 +138,53 @@ useEffect(() => {
     previewLayerRef.current = layer
   }, [preview, height])
 
-
-  //RENDERIZA TALHOES//
+  // RENDERIZA TALHOES
   useEffect(() => {
     if (!mapInstanceRef.current || !height) return
 
     const map = mapInstanceRef.current
 
-    // remove antigos
-    talhoesLayerRef.current.forEach(layer => {
-      map.removeLayer(layer)
-    })
+    talhoesLayerRef.current.forEach(layer => map.removeLayer(layer))
     talhoesLayerRef.current = []
 
-    // desenha novos
     talhoes.forEach((talhao) => {
+      const pontos = talhao.poligono.map(([x, y]) =>
+        pixelParaLatLng(x, y, largura, altura)
+      )
 
-      const pontos = talhao.poligono.map(([x, y]) => [height - y, x])
-
-      const layer = L.polygon(pontos, {
-        color: "green",
-        weight: 2
-      })
+      const layer = L.polygon(pontos, { color: "red", weight: 2 })
         .addTo(map)
         .bindPopup(`Talhão ${talhao.id} — ${talhao.area_pixels} px²`)
 
       talhoesLayerRef.current.push(layer)
     })
-
   }, [talhoes, height])
 
-  //DETECTA CLIQUES NO MOUSE//
+  // DETECTA CLIQUES NO MOUSE
   useEffect(() => {
     if (!mapInstanceRef.current) return
 
     const map = mapInstanceRef.current
 
     function onClick(e) {
+      if (modo !== 1) return
 
-      if (modo == 1) {
-        const { x, y } = latLngParaPixel(e.latlng, height)
-        console.log(x, y)
-        clicarPonto(x, y, 1)
+      const { x, y } = latLngParaPixel(e.latlng, largura, altura)
+      clicarPonto(x, y, 1)
 
-        const marker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
-          radius: 5,
-          color: "green"
-        }).addTo(map)
-        pontosLayerRef.current.push(marker)
-      }
+      const marker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
+        radius: 5, color: "green"
+      }).addTo(map)
+      pontosLayerRef.current.push(marker)
     }
 
     function onRightClick(e) {
       e.originalEvent.preventDefault()
-
-      const { x, y } = latLngParaPixel(e.latlng, height)
+      const { x, y } = latLngParaPixel(e.latlng, largura, altura)
       clicarPonto(x, y, 0)
 
       const marker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
-        radius: 5,
-        color: "red"
+        radius: 5, color: "red"
       }).addTo(map)
       pontosLayerRef.current.push(marker)
     }
@@ -243,56 +196,32 @@ useEffect(() => {
       map.off("click", onClick)
       map.off("contextmenu", onRightClick)
     }
+  }, [clicarPonto, modo, largura, altura, boundsReais])
 
-  }, [clicarPonto, modo])
-
-  //DETECTA CLIQUES NO TECLADO//
+  // DETECTA CLIQUES NO TECLADO
   useEffect(() => {
-
     function handleKeyDown(e) {
-
       if (e.repeat) return
-
       if (["INPUT", "TEXTAREA"].includes(e.target.tagName)) return
 
       switch (e.key.toLowerCase()) {
-
-        case "e":
-          e.preventDefault()
-          clickConfirm()
-          break
-
-        case "z":
-
-          break
-
-        case "r":
-          clickReset()
-          break
-
-        case "escape":
-          //clickReset()
-          break
+        case "e": e.preventDefault(); clickConfirm(); break
+        case "r": clickReset(); break
       }
     }
-
     window.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-
+    return () => window.removeEventListener("keydown", handleKeyDown)
   }, [confirmarTalhao, reiniciar, desfazer])
 
   return (
     <div className="map-shell">
       <div className="map-shell__toolbar">
         <MapToolbar
-          onSegment={() => (alterarModo(1))}
-          onDrag={() => (alterarModo(2))}
-          onConfirm={() => (clickConfirm())}
-          onDelete={() => (clickDesfazer())}
-          onReset={() => (clickReset())}
+          onSegment={() => alterarModo(1)}
+          onDrag={() => alterarModo(2)}
+          onConfirm={clickConfirm}
+          onDelete={clickDesfazer}
+          onReset={clickReset}
         />
       </div>
 

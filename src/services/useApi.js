@@ -1,10 +1,12 @@
 const API_URL = "http://localhost:8000"
-import { useState, useEffect, useRef, useCallback} from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 export function useApi() {
   const [sessionId, setSessionId] = useState(null)
-  const [boundsreais,setBoundsReais] = useState(null)
-  const [georeferenciada,setGeoreferenciada] = useState()
+  const [boundsreais, setBoundsReais] = useState(null)
+  const [georeferenciada, setGeoreferenciada] = useState()
+  const [largura, setLargura] = useState(null)
+  const [altura, setAltura] = useState(null)
   const [talhoes, setTalhoes] = useState([])
   const [preview, setPreview] = useState(null)
   const [carregando, setCarregando] = useState(false)
@@ -12,7 +14,7 @@ export function useApi() {
   const ws = useRef(null)
 
 
-const uploadImagem = async (arquivo) => {
+  const uploadImagem = async (arquivo) => {
     setCarregando(true)
     setErro(null)
 
@@ -23,20 +25,22 @@ const uploadImagem = async (arquivo) => {
     const dados = await res.json()
 
     if (!res.ok) {
-        setErro(dados.detail)
-        setCarregando(false)
-        return null
+      setErro(dados.detail)
+      setCarregando(false)
+      return null
     }
 
-    setSessionId(dados.session_id)       // ← corrigido: snake_case
+    setSessionId(dados.session_id)
     setBoundsReais(dados.bounds)
     setGeoreferenciada(dados.georeferenciada)
+    setLargura(dados.largura)
+    setAltura(dados.altura)
 
     abrirWebSocket(dados.session_id)
 
-    setCarregando(false)                 // ← estava faltando no caminho feliz
+    setCarregando(false)
     return dados
-}
+  }
 
   const abrirWebSocket = useCallback((sid) => {
     if (ws.current) ws.current.close()
@@ -135,21 +139,22 @@ const uploadImagem = async (arquivo) => {
   }
 
   useEffect(() => {
-  return () => {
-    if (ws.current) {
-      console.log("Fechando WebSocket...")
-      ws.current.close()
+    return () => {
+      if (ws.current) {
+        console.log("Fechando WebSocket...")
+        ws.current.close()
+      }
     }
-  }
-}, [])
+  }, [])
 
-return {
-  sessionId, talhoes, preview, carregando, erro, boundsreais, georeferenciada,
-  uploadImagem,
-  clicarPonto,
-  confirmarTalhao,
-  desfazer,
-  reiniciar,
-  editarPoligono,
-}
+  return {
+    sessionId, talhoes, preview, carregando, erro, boundsreais, georeferenciada,
+    largura, altura,
+    uploadImagem,
+    clicarPonto,
+    confirmarTalhao,
+    desfazer,
+    reiniciar,
+    editarPoligono,
+  }
 }

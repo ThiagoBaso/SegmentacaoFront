@@ -112,7 +112,8 @@ $transition-med: 0.15s ease;
 .lateralBar {
   display: flex;
   flex-shrink: 0;
-  width: $sidebar-width;
+  //width: $sidebar-width;
+  width: 0;
   height: 100vh;
   background: #0b0b0b;
   font-family: $font-family;

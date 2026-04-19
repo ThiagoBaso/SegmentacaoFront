@@ -28,7 +28,7 @@ const TOOLS = [
   },
   {
     id: "confirm",
-    label: "Confirmar",
+    label: "[E]Confirmar",
     sublabel: null,
     icon: (
       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -38,7 +38,7 @@ const TOOLS = [
   },
   {
     id: "delete",
-    label: "Excluir",
+    label: "[Z]Excluir",
     sublabel: "talhão",
     icon: (
       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -50,7 +50,7 @@ const TOOLS = [
   },
   {
     id: "reset",
-    label: "Reset",
+    label: "[R]Reset",
     sublabel: null,
     icon: (
       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
