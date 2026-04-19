@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import '../styles/App.scss'
+import MapToolbar from "./MapToolbar";
 
 
 function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
@@ -35,7 +36,8 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
       crs: L.CRS.Simple,
       minZoom: -3,
       zoomDelta: 0.25,
-      zoomSnap: 0
+      zoomSnap: 0,
+      zoomControl: false,
     });
     mapInstanceRef.current = map;
     return () => map.remove();
@@ -223,16 +225,23 @@ useEffect(() => {
   }, [confirmarTalhao, reiniciar, desfazer])
 
   return (
-    <div style={{width:'100%', height:'100%'}}>
+    <div className="map-shell">
+      <div className="map-shell__toolbar">
+        <MapToolbar
+          onConfirm={confirmarTalhao}
+          onDelete={desfazer}
+          onReset={reiniciar}
+        />
+      </div>
 
       {preview && (
-        <p>
+        <p className="map-shell__preview">
           Prévia — Área: {preview.area_pixels.toLocaleString()} px²
           | Score: {(preview.score * 100).toFixed(0)}%
         </p>
       )}
 
-      <div ref={mapRef} style={{width:'100%', height:'80%'}} />
+      <div ref={mapRef} className='leaflet-container' />
     </div>
   );
 }

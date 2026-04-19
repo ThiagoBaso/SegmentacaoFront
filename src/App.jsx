@@ -3,7 +3,7 @@ import './styles/App.scss'
 import "leaflet/dist/leaflet.css";
 import MapaFazenda from './components/MapaFazenda';
 import { useApi } from './services/useApi';
-import FazendaSidebar from './components/FazendaSidebar';
+import Fazenda from './components/Fazenda';
 
 
 
@@ -23,37 +23,9 @@ function App() {
 
   return (
     <div>
-      <FazendaSidebar/>
+      <Fazenda/>
     </div>
   )
-
-
-
-//   return (
-//     <div className='main'>
-
-//       <div className="leftbar">
-//         <div className="searchbar">
-//           <input type="text" name="search" id="search"/>
-//         </div>
-//         <div className="fazendasList">AAAA</div>
-//         <div className="fazendaNew">
-//           <label for="arquivo">Enviar arquivo</label>
-//           <input type="file" accept="image/*" name="arquivo" id="arquivo" onChange={handleChange} />
-//         </div>
-//       </div>
-
-//         <MapaFazenda
-//         imagemUrl={imagemUrl} clicarPonto ={clicarPonto} 
-//         talhoes={talhoes} preview={preview} confirmarTalhao={confirmarTalhao}
-//         desfazer={desfazer} reiniciar={reiniciar} carregando={carregando}/>
-
-//       <div className="rigthbar">
-        
-//       </div>
-
-//     </div>
-//   )
 }
 
 
