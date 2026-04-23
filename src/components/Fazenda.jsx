@@ -19,7 +19,7 @@ const handleChange = async (e) => {
     const dados = await uploadImagem(file);
     if (!dados) return; // erro já tratado dentro do uploadImagem
 
-    setImagemUrl(`http://localhost:8000/imagem/${dados.session_id}`);
+    setImagemUrl(`${API_URL}/imagem/${dados.session_id}`);
 };
 
   if (!imagemUrl) {

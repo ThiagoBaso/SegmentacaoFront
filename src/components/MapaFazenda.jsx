@@ -5,7 +5,7 @@ import '../styles/App.scss'
 import MapToolbar from "./MapToolbar";
 
 function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
-  reiniciar, desfazer, carregando, sessionId, boundsReais, largura, altura
+  reiniciar, desfazer, carregando, sessionId, boundsReais, largura, altura, editarPoligono
 }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -13,6 +13,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
   const previewLayerRef = useRef(null)
   const pontosLayerRef = useRef([])
   const imageLayerRef = useRef(null)
+  const verticesLayerRef = useRef([])
 
   const [height, setHeight] = useState(null)
   const [modo, setModo] = useState(0)
@@ -51,9 +52,16 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     pontosLayerRef.current = []
   }
 
+  function limparVertices() {
+    const map = mapInstanceRef.current
+    verticesLayerRef.current.forEach(m => map.removeLayer(m))
+    verticesLayerRef.current = []
+  }
+
   function alterarModo(x) {
     setModo(prev => prev === x ? 0 : x)
     limparPontos()
+    limparVertices()
     reiniciar()
   }
 
@@ -71,7 +79,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     });
     mapInstanceRef.current = map;
     return () => map.remove();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // RENDERIZA IMAGEM
   useEffect(() => {
@@ -138,27 +146,87 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     previewLayerRef.current = layer
   }, [preview, height])
 
-  // RENDERIZA TALHOES
+
+  // RENDERIZA TALHOES + VÉRTICES EDITÁVEIS
   useEffect(() => {
     if (!mapInstanceRef.current || !height) return
 
     const map = mapInstanceRef.current
 
+    // Remove polígonos anteriores
     talhoesLayerRef.current.forEach(layer => map.removeLayer(layer))
     talhoesLayerRef.current = []
 
+    // Remove vértices anteriores
+    limparVertices()
+
     talhoes.forEach((talhao) => {
-      const pontos = talhao.poligono.map(([x, y]) =>
+      const pontosLatLng = talhao.poligono.map(([x, y]) =>
         pixelParaLatLng(x, y, largura, altura)
       )
 
-      const layer = L.polygon(pontos, { color: "red", weight: 2 })
+      const layer = L.polygon(pontosLatLng, { color: "red", weight: 2 })
         .addTo(map)
         .bindPopup(`Talhão ${talhao.id} — ${talhao.area_pixels} px²`)
 
       talhoesLayerRef.current.push(layer)
+
+      // Modo edição: adiciona vértices arrastáveis
+      if (modo === 2) {
+        pontosLatLng.forEach((latLng, index) => {
+          const marker = L.circleMarker(latLng, {
+            radius: 6,
+            color: "#fff",
+            fillColor: "#E8541A",
+            fillOpacity: 1,
+            weight: 2,
+            draggable: true,
+          })
+
+          
+          const dragMarker = L.marker(latLng, {
+            icon: L.divIcon({
+              className: "vertice-drag-icon",
+              html: `<div style="
+              width: 14px; height: 14px;
+              border-radius: 50%;
+              background: #E8541A;
+              border: 2px solid #fff;
+              cursor: grab;
+              margin-left: -7px;
+              margin-top: -7px;
+            "></div>`,
+              iconSize: [14, 14],
+            }),
+            draggable: true,
+            zIndexOffset: 1000,
+          }).addTo(map)
+
+          // Atualiza polígono visualmente enquanto arrasta
+          dragMarker.on("drag", (e) => {
+            const novoLatLng = e.target.getLatLng()
+            const novosPontos = [...pontosLatLng]
+            novosPontos[index] = [novoLatLng.lat, novoLatLng.lng]
+            layer.setLatLngs(novosPontos)
+          })
+
+          // Ao soltar: converte todos os vértices para pixel e envia ao backend
+          dragMarker.on("dragend", () => {
+            const latLngsAtuais = layer.getLatLngs()[0]
+
+            const poligonoPixel = latLngsAtuais.map((ll) => {
+              const { x, y } = latLngParaPixel(ll, largura, altura)
+              return [x, y]
+            })
+
+            editarPoligono(talhao.id, poligonoPixel)
+          })
+
+          verticesLayerRef.current.push(dragMarker)
+        })
+      }
     })
-  }, [talhoes, height])
+  }, [talhoes, height, modo])
 
   // DETECTA CLIQUES NO MOUSE
   useEffect(() => {

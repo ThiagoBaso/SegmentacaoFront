@@ -135,6 +135,7 @@ export function useApi() {
 
   // Usuário arrastou ponto no Leaflet — envia polígono editado
   function editarPoligono(id, novoPoligono) {
+    console.log(id, novoPoligono)
     enviar({ acao: "editar_poligono", id, poligono: novoPoligono })
   }
 
@@ -149,7 +150,7 @@ export function useApi() {
 
   return {
     sessionId, talhoes, preview, carregando, erro, boundsreais, georeferenciada,
-    largura, altura,
+    largura, altura, API_URL,
     uploadImagem,
     clicarPonto,
     confirmarTalhao,
