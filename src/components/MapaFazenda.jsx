@@ -173,52 +173,47 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
 
       // Modo edição: adiciona vértices arrastáveis
       if (modo === 2) {
-        pontosLatLng.forEach((latLng, index) => {
-          const marker = L.circleMarker(latLng, {
-            radius: 6,
-            color: "#fff",
-            fillColor: "#E8541A",
-            fillOpacity: 1,
-            weight: 2,
-            draggable: true,
-          })
+        const pontosEditaveis = [...pontosLatLng]
 
-          
+        pontosLatLng.forEach((latLng, index) => {
           const dragMarker = L.marker(latLng, {
             icon: L.divIcon({
               className: "vertice-drag-icon",
               html: `<div style="
-              width: 14px; height: 14px;
-              border-radius: 50%;
-              background: #E8541A;
-              border: 2px solid #fff;
-              cursor: grab;
-              margin-left: -7px;
-              margin-top: -7px;
-            "></div>`,
-              iconSize: [14, 14],
+                      width: 12px; height: 12px;
+                      border-radius: 50%;
+                      background: #E8541A;
+                      border: 2px solid #fff;
+                      cursor: grab;
+                      margin-left: -7px;
+                      margin-top: -7px;
+                      transition: transform 0.15s ease;
+                    "></div>`,
+              iconSize: [5,5],
             }),
             draggable: true,
             zIndexOffset: 1000,
           }).addTo(map)
 
-          // Atualiza polígono visualmente enquanto arrasta
-          dragMarker.on("drag", (e) => {
-            const novoLatLng = e.target.getLatLng()
-            const novosPontos = [...pontosLatLng]
-            novosPontos[index] = [novoLatLng.lat, novoLatLng.lng]
-            layer.setLatLngs(novosPontos)
+          dragMarker.on("mouseover", () => {
+            dragMarker.getElement().querySelector("div").style.transform = "scale(1.5)"
           })
 
-          // Ao soltar: converte todos os vértices para pixel e envia ao backend
-          dragMarker.on("dragend", () => {
-            const latLngsAtuais = layer.getLatLngs()[0]
+          dragMarker.on("mouseout", () => {
+            dragMarker.getElement().querySelector("div").style.transform = "scale(1)"
+          })
 
-            const poligonoPixel = latLngsAtuais.map((ll) => {
-              const { x, y } = latLngParaPixel(ll, largura, altura)
+          dragMarker.on("drag", (e) => {
+            const { lat, lng } = e.target.getLatLng()
+            pontosEditaveis[index] = [lat, lng]          // ← atualiza array local
+            layer.setLatLngs(pontosEditaveis)            // ← atualiza visual
+          })
+
+          dragMarker.on("dragend", () => {
+            const poligonoPixel = pontosEditaveis.map(([lat, lng]) => {
+              const { x, y } = latLngParaPixel({ lat, lng }, largura, altura)
               return [x, y]
             })
-
             editarPoligono(talhao.id, poligonoPixel)
           })
 

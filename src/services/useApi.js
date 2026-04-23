@@ -90,7 +90,9 @@ export function useApi() {
         // Polígono editado manualmente
         case "poligono_editado":
           setTalhoes(prev => prev.map(t =>
-            t.id === msg.id ? { ...t, area_pixels: msg.area_pixels } : t
+            t.id === msg.id
+              ? { ...t, poligono: msg.poligono, area_pixels: msg.area_pixels }
+              : t
           ))
           break
 
