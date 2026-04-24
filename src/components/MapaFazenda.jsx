@@ -5,7 +5,7 @@ import '../styles/App.scss'
 import MapToolbar from "./MapToolbar";
 
 function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
-  reiniciar, desfazer, carregando, sessionId, boundsReais, largura, altura, editarPoligono
+  reiniciar, desfazer, carregando, sessionId, boundsReais, largura, altura, editarPoligono, exportarGeoJSON,
 }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -285,6 +285,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
           onConfirm={clickConfirm}
           onDelete={clickDesfazer}
           onReset={clickReset}
+          onSave={() => exportarGeoJSON()}
         />
       </div>
 

@@ -44,6 +44,26 @@ export function useApi() {
     return dados
   }
 
+  const exportarGeoJSON = async () => {
+    console.log("save")
+    if (!sessionId) return
+
+    const res = await fetch(`${API_URL}/exportar/${sessionId}`)
+    if (!res.ok) {
+        const err = await res.json()
+        setErro(err.detail)
+        return
+    }
+
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `talhoes_${sessionId.slice(0, 8)}.geojson`
+    a.click()
+    URL.revokeObjectURL(url)
+}
+
   const abrirWebSocket = useCallback((sid) => {
     if (ws.current) ws.current.close()
 
@@ -161,5 +181,6 @@ export function useApi() {
     desfazer,
     reiniciar,
     editarPoligono,
+    exportarGeoJSON,
   }
 }
