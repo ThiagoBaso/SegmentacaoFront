@@ -5,6 +5,8 @@ import { useApi } from '../services/useApi';
 import "leaflet/dist/leaflet.css";
 import MapToolbar from "./MapToolbar";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Fazenda() {
   const [imagemUrl, setImagemUrl] = useState();
 
@@ -17,9 +19,9 @@ const handleChange = async (e) => {
     if (!file) return;
 
     const dados = await uploadImagem(file);
-    if (!dados) return; // erro já tratado dentro do uploadImagem
+    if (!dados) return;
 
-    setImagemUrl(`http://localhost:8000/imagem/${dados.session_id}`);
+    setImagemUrl(`${API_URL}/imagem/${dados.session_id}`);
 };
 
   if (!imagemUrl) {

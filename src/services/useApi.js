@@ -1,5 +1,7 @@
-const API_URL = "http://localhost:8000"
 import { useState, useEffect, useRef, useCallback } from 'react'
+
+const API_URL = import.meta.env.VITE_API_URL
+const WS_URL = import.meta.env.VITE_WS_URL
 
 export function useApi() {
   const [sessionId, setSessionId] = useState(null)
@@ -45,7 +47,7 @@ export function useApi() {
   const abrirWebSocket = useCallback((sid) => {
     if (ws.current) ws.current.close()
 
-    ws.current = new WebSocket(`ws://localhost:8000/ws/${sid}`)
+    ws.current = new WebSocket(`${WS_URL}/ws/${sid}`)
 
     ws.current.onopen = () => {
       console.log("WebSocket conectado")
