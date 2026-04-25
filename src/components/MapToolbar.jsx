@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "./MapToolbar.scss";
+import "../styles/MapToolbar.scss";
 
 const TOOLS = [
   {
@@ -66,8 +66,13 @@ const TOOLS = [
     sublabel: "talhões",
     icon: (
       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 10a6 6 0 1 0 1.2-3.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M4 5.5V10h4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="10" y1="3" x2="10" y2="13"
+          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <polyline points="6,9 10,14 14,9"
+          stroke="currentColor" strokeWidth="1.5"
+          strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="4" y1="17" x2="16" y2="17"
+          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     ),
     danger: true,
@@ -87,7 +92,7 @@ export default function MapToolbar({
 }) {
   const [activeTool, setActiveTool] = useState('0');
 
-  const callbacks = { segment: onSegment, drag: onDrag, confirm: onConfirm, delete: onDelete, reset: onReset, save: onSave};
+  const callbacks = { segment: onSegment, drag: onDrag, confirm: onConfirm, delete: onDelete, reset: onReset, save: onSave };
 
   const handleClick = (toolId) => {
     if (TOGGLE_TOOLS.includes(toolId)) {

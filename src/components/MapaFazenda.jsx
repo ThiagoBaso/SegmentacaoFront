@@ -65,6 +65,29 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     reiniciar()
   }
 
+  // Distância de um ponto P a um segmento AB (em coordenadas lat/lng)
+  function distPontoSegmento(p, a, b) {
+    const ax = a[1], ay = a[0]  // lng, lat
+    const bx = b[1], by = b[0]
+    const px = p[1], py = p[0]
+
+    const dx = bx - ax
+    const dy = by - ay
+    const lenSq = dx * dx + dy * dy
+
+    if (lenSq === 0) {
+      // Segmento degenerado — retorna distância ao ponto A
+      return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2)
+    }
+
+    // Projeta P sobre o segmento AB, clampado entre 0 e 1
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq))
+    const projX = ax + t * dx
+    const projY = ay + t * dy
+
+    return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2)
+  }
+
   // INICIALIZA MAPA — CRS depende de georeferência
   useEffect(() => {
     const crs = boundsReais ? L.CRS.EPSG3857 : L.CRS.Simple
@@ -146,18 +169,14 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     previewLayerRef.current = layer
   }, [preview, height])
 
-
-  // RENDERIZA TALHOES + VÉRTICES EDITÁVEIS
+  // RENDERIZA TALHÃO
   useEffect(() => {
     if (!mapInstanceRef.current || !height) return
 
     const map = mapInstanceRef.current
 
-    // Remove polígonos anteriores
     talhoesLayerRef.current.forEach(layer => map.removeLayer(layer))
     talhoesLayerRef.current = []
-
-    // Remove vértices anteriores
     limparVertices()
 
     talhoes.forEach((talhao) => {
@@ -171,12 +190,12 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
 
       talhoesLayerRef.current.push(layer)
 
-      // Modo edição: adiciona vértices arrastáveis
       if (modo === 2) {
-        const pontosEditaveis = [...pontosLatLng]
+        const pontosEditaveis = pontosLatLng.map(p => [...p])
+        const markersDoTalhao = []  // ← array local, isolado por talhão
 
-        pontosLatLng.forEach((latLng, index) => {
-          const dragMarker = L.marker(latLng, {
+        function criarDragMarker(latLng, index) {
+          const marker = L.marker(latLng, {
             icon: L.divIcon({
               className: "vertice-drag-icon",
               html: `<div style="
@@ -189,27 +208,28 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
                       margin-top: -7px;
                       transition: transform 0.15s ease;
                     "></div>`,
-              iconSize: [5,5],
+              iconSize: [5, 5],
             }),
             draggable: true,
             zIndexOffset: 1000,
           }).addTo(map)
 
-          dragMarker.on("mouseover", () => {
-            dragMarker.getElement().querySelector("div").style.transform = "scale(1.5)"
+          marker.on("mouseover", () => {
+            marker.getElement().querySelector("div").style.transform = "scale(1.5)"
+          })
+          marker.on("mouseout", () => {
+            marker.getElement().querySelector("div").style.transform = "scale(1)"
           })
 
-          dragMarker.on("mouseout", () => {
-            dragMarker.getElement().querySelector("div").style.transform = "scale(1)"
-          })
-
-          dragMarker.on("drag", (e) => {
+          marker.on("drag", (e) => {
             const { lat, lng } = e.target.getLatLng()
-            pontosEditaveis[index] = [lat, lng]          // ← atualiza array local
-            layer.setLatLngs(pontosEditaveis)            // ← atualiza visual
+            const idx = markersDoTalhao.indexOf(marker)  // ← índice no array local
+            if (idx === -1) return
+            pontosEditaveis[idx] = [lat, lng]
+            layer.setLatLngs(pontosEditaveis)
           })
 
-          dragMarker.on("dragend", () => {
+          marker.on("dragend", () => {
             const poligonoPixel = pontosEditaveis.map(([lat, lng]) => {
               const { x, y } = latLngParaPixel({ lat, lng }, largura, altura)
               return [x, y]
@@ -217,7 +237,49 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
             editarPoligono(talhao.id, poligonoPixel)
           })
 
-          verticesLayerRef.current.push(dragMarker)
+          markersDoTalhao.push(marker)          // ← registra no array local
+          verticesLayerRef.current.push(marker) // ← registra no ref para limpeza
+          return marker
+        }
+
+        pontosEditaveis.forEach((latLng) => {
+          criarDragMarker(latLng)
+        })
+
+        layer.on("contextmenu", (e) => {
+          e.originalEvent.preventDefault()
+          e.originalEvent.stopPropagation()
+
+          const { lat, lng } = e.latlng
+          const novoP = [lat, lng]
+
+          let menorDist = Infinity
+          let melhorIdx = 0
+          const n = pontosEditaveis.length
+
+          for (let i = 0; i < n; i++) {
+            const a = pontosEditaveis[i]
+            const b = pontosEditaveis[(i + 1) % n]
+            const dist = distPontoSegmento(novoP, a, b)
+            if (dist < menorDist) {
+              menorDist = dist
+              melhorIdx = i
+            }
+          }
+
+          const insertIdx = melhorIdx + 1
+          pontosEditaveis.splice(insertIdx, 0, novoP)
+          layer.setLatLngs(pontosEditaveis)
+
+          // Remove só os markers deste talhão
+          markersDoTalhao.forEach(m => {
+            map.removeLayer(m)
+            const idx = verticesLayerRef.current.indexOf(m)
+            if (idx !== -1) verticesLayerRef.current.splice(idx, 1)
+          })
+          markersDoTalhao.length = 0
+
+          pontosEditaveis.forEach((p) => criarDragMarker(p))
         })
       }
     })
@@ -242,6 +304,8 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     }
 
     function onRightClick(e) {
+      if (modo !== 1) return
+      
       e.originalEvent.preventDefault()
       const { x, y } = latLngParaPixel(e.latlng, largura, altura)
       clicarPonto(x, y, 0)
