@@ -5,10 +5,12 @@ import '../styles/App.scss'
 import MapToolbar from "./MapToolbar";
 
 function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
-  reiniciar, desfazer, carregando, sessionId, boundsReais, largura, altura, editarPoligono, exportarGeoJSON,
-}) {
-  const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
+  reiniciar, desfazer, carregando, sessionId, boundsReais,
+  largura, altura, editarPoligono, exportarGeoJSON, }) {
+
+  //Refs
+  const mapRef = useRef(null)
+  const mapInstanceRef = useRef(null)
   const talhoesLayerRef = useRef([])
   const previewLayerRef = useRef(null)
   const pontosLayerRef = useRef([])
@@ -18,7 +20,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
   const [height, setHeight] = useState(null)
   const [modo, setModo] = useState(0)
 
-  // Converte pixel (SAM) → lat/lng (Leaflet) considerando bounds reais
+  // Converte pixel (SAM) → lat/lng (Leaflet)
   function pixelParaLatLng(x, y, imgLargura, imgAltura) {
     if (boundsReais) {
       const [[latMin, lngMin], [latMax, lngMax]] = boundsReais
@@ -26,7 +28,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
       const lat = latMax - (y / imgAltura) * (latMax - latMin)
       return [lat, lng]
     }
-    // fallback CRS.Simple: y invertido
+
     return [imgAltura - y, x]
   }
 
@@ -38,26 +40,30 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
       const y = Math.round((latMax - latlng.lat) / (latMax - latMin) * imgAltura)
       return { x, y }
     }
-    // fallback CRS.Simple
+
     return { x: latlng.lng, y: imgAltura - latlng.lat }
   }
 
+  //agrupa funçoes
   function clickConfirm() { confirmarTalhao(); limparPontos() }
   function clickReset() { reiniciar(); limparPontos() }
   function clickDesfazer() { desfazer(); limparPontos() }
 
+  //apaga os pontos de clique do mouse
   function limparPontos() {
     const map = mapInstanceRef.current
     pontosLayerRef.current.forEach(m => map.removeLayer(m))
     pontosLayerRef.current = []
   }
 
+  //apaga os vertices dos talhoes exibidos
   function limparVertices() {
     const map = mapInstanceRef.current
     verticesLayerRef.current.forEach(m => map.removeLayer(m))
     verticesLayerRef.current = []
   }
 
+  //alterar entre os modos visializar(0) / segmentar(1) / editar vertices(2)
   function alterarModo(x) {
     setModo(prev => prev === x ? 0 : x)
     limparPontos()
@@ -88,7 +94,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2)
   }
 
-  // INICIALIZA MAPA — CRS depende de georeferência
+  // INICIALIZA MAPA
   useEffect(() => {
     const crs = boundsReais ? L.CRS.EPSG3857 : L.CRS.Simple
 
@@ -305,7 +311,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
 
     function onRightClick(e) {
       if (modo !== 1) return
-      
+
       e.originalEvent.preventDefault()
       const { x, y } = latLngParaPixel(e.latlng, largura, altura)
       clicarPonto(x, y, 0)

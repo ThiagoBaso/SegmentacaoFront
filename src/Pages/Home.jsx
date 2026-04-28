@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
-import "../styles/FazendaSidebar.scss";
-import MapaFazenda from './MapaFazenda';
+import "../styles/Fazenda.scss";
+import MapaFazenda from '../components/MapaFazenda';
 import { useApi } from '../services/useApi';
 import "leaflet/dist/leaflet.css";
-import MapToolbar from "./MapToolbar";
+import MapToolbar from "../components/MapToolbar";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export default function Fazenda() {
+export default function Home() {
   const [imagemUrl, setImagemUrl] = useState();
 
   const segmentacao = useApi();
   const { uploadImagem } = segmentacao;
 
-
+//faz upload da imagem
 const handleChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -21,9 +21,11 @@ const handleChange = async (e) => {
     const dados = await uploadImagem(file);
     if (!dados) return;
 
+    //pega imagem convertida no backend
     setImagemUrl(`${API_URL}/imagem/${dados.session_id}`);
 };
 
+  //enquanto não faz upload da image
   if (!imagemUrl) {
     return (
       <div className="fazenda-app">
@@ -55,6 +57,7 @@ const handleChange = async (e) => {
     );
   }
 
+  //fez upload
   return (
     <div className="wp">
       <div className="fazenda-app-w">
