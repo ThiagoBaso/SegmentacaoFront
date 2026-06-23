@@ -95,7 +95,6 @@ export function useApi() {
           setTalhoes(msg.todos_talhoes)
           console.log('talhoes')
           console.log(msg)
-          console.log(talhoes)
           setPreview(null)
           break
 
@@ -126,6 +125,23 @@ export function useApi() {
 
     ws.current.onerror = () => setErro("Erro na conexão com o servidor.")
     ws.current.onclose = () => console.log("WebSocket encerrado")
+  }, [])
+
+  const encerrarSessao = useCallback(() => {
+    if (ws.current) {
+      ws.current.close()
+      ws.current = null
+    }
+
+    setSessionId(null)
+    setBoundsReais(null)
+    setGeoreferenciada(undefined)
+    setLargura(null)
+    setAltura(null)
+    setTalhoes([])
+    setPreview(null)
+    setCarregando(false)
+    setErro(null)
   }, [])
 
   const enviar = (dados) => {
@@ -182,5 +198,6 @@ export function useApi() {
     reiniciar,
     editarPoligono,
     exportarGeoJSON,
+    encerrarSessao,
   }
 }

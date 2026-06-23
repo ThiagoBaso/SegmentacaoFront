@@ -199,3 +199,75 @@ $transition:    0.18s ease;
     transform: translateY(0px) scale(0.97);
   }
 }
+
+.map-session-button {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+  height: 80px;
+  display: flex;
+}
+
+.map-session-button__btn {
+  width: 104px;
+  height: 100%;
+  gap: 4px;
+  padding: 8px 10px 7px;
+  border-color: rgba($danger, 0.18);
+
+  .map-toolbar__btn-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .map-session-button__label {
+    align-items: center;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .map-toolbar__btn-sublabel {
+    font-size: 9px;
+  }
+
+  &:hover {
+    background: $bg-hover;
+    border-color: rgba(#fff, 0.14);
+
+    .map-toolbar__btn-icon {
+      color: $text-primary;
+    }
+
+    .map-toolbar__btn-label {
+      color: #d8d3cc;
+    }
+  }
+}
+
+@media (max-width: 860px) {
+  .map-session-button {
+    top: 104px;
+    left: 12px;
+    height: 58px;
+  }
+
+  .map-session-button__btn {
+    width: 90px;
+    gap: 3px;
+    padding: 7px 8px;
+
+    .map-toolbar__btn-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .map-session-button__label {
+      font-size: 10px;
+    }
+
+    .map-toolbar__btn-sublabel {
+      font-size: 9px;
+    }
+  }
+}

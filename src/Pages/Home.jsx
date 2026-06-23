@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "../styles/Fazenda.scss";
 import MapaFazenda from '../components/MapaFazenda';
 import { useApi } from '../services/useApi';
 import "leaflet/dist/leaflet.css";
-import MapToolbar from "../components/MapToolbar";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -11,10 +10,10 @@ export default function Home() {
   const [imagemUrl, setImagemUrl] = useState();
 
   const segmentacao = useApi();
-  const { uploadImagem } = segmentacao;
+  const { uploadImagem, encerrarSessao } = segmentacao;
 
-//faz upload da imagem
-const handleChange = async (e) => {
+  //faz upload da imagem
+  const handleChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -23,7 +22,23 @@ const handleChange = async (e) => {
 
     //pega imagem convertida no backend
     setImagemUrl(`${API_URL}/imagem/${dados.session_id}`);
-};
+  };
+
+  const handleEncerrarSessao = () => {
+    encerrarSessao();
+    setImagemUrl(undefined);
+  };
+
+  if (segmentacao.carregando) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-content">
+          <div className="spinner"></div>
+          <p>Carregando...</p>
+        </div>
+      </div>
+    )
+  }
 
   //enquanto não faz upload da image
   if (!imagemUrl) {
@@ -61,10 +76,14 @@ const handleChange = async (e) => {
   return (
     <div className="wp">
       <div className="fazenda-app-w">
-        <MapaFazenda imagemUrl={imagemUrl} {...segmentacao} />
+        <MapaFazenda
+          imagemUrl={imagemUrl}
+          {...segmentacao}
+          onEncerrarSessao={handleEncerrarSessao}
+        />
       </div>
       <div className="lateralBar">
-        
+
       </div>
     </div>
   );

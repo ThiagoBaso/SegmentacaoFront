@@ -82,6 +82,34 @@ const TOOLS = [
 // Toggle tools (activate/deactivate on click)
 const TOGGLE_TOOLS = ["segment", "drag"];
 
+const END_SESSION_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9 5H6.5A2.5 2.5 0 0 0 4 7.5v9A2.5 2.5 0 0 0 6.5 19H9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M13 8l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M17 12H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+export function EndSessionButton({ onClick }) {
+  return (
+    <div className="map-session-button">
+      <button
+        type="button"
+        className="map-toolbar__btn map-session-button__btn"
+        onClick={onClick}
+        title="Encerrar sessao"
+        aria-label="Encerrar sessao"
+      >
+        <span className="map-toolbar__btn-icon">{END_SESSION_ICON}</span>
+        <span className="map-toolbar__btn-label map-session-button__label">
+          [X]Encerrar
+          <span className="map-toolbar__btn-sublabel">{"sess\u00e3o"}</span>
+        </span>
+      </button>
+    </div>
+  );
+}
+
 export default function MapToolbar({
   onSegment,
   onDrag,

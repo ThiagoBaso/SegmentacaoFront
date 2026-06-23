@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import '../styles/App.scss'
-import MapToolbar from "./MapToolbar";
+import MapToolbar, { EndSessionButton } from "./MapToolbar";
 
 function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao,
-  reiniciar, desfazer, carregando, sessionId, boundsReais,
-  largura, altura, editarPoligono, exportarGeoJSON, }) {
+  reiniciar, desfazer, boundsReais,
+  largura, altura, editarPoligono, exportarGeoJSON, onEncerrarSessao, }) {
 
   //Refs
   const mapRef = useRef(null)
@@ -48,6 +48,11 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
   function clickConfirm() { confirmarTalhao(); limparPontos() }
   function clickReset() { reiniciar(); limparPontos() }
   function clickDesfazer() { desfazer(); limparPontos() }
+  function clickEncerrarSessao() {
+    limparPontos()
+    limparVertices()
+    onEncerrarSessao?.()
+  }
 
   //apaga os pontos de clique do mouse
   function limparPontos() {
@@ -125,9 +130,8 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
       requestAnimationFrame(() => {
         map.invalidateSize()
         map.fitBounds(boundsReais)
+        setHeight(altura)
       })
-      // altura/largura vêm como props do backend
-      setHeight(altura)
     } else {
       const img = new Image()
       img.onload = () => {
@@ -143,7 +147,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
     }
 
     limparPontos()
-  }, [imagemUrl, boundsReais])
+  }, [imagemUrl, boundsReais, altura])
 
   // RENDERIZA PREVIEW
   useEffect(() => {
@@ -200,7 +204,7 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
         const pontosEditaveis = pontosLatLng.map(p => [...p])
         const markersDoTalhao = []  // ← array local, isolado por talhão
 
-        function criarDragMarker(latLng, index) {
+        function criarDragMarker(latLng) {
           const marker = L.marker(latLng, {
             icon: L.divIcon({
               className: "vertice-drag-icon",
@@ -340,14 +344,17 @@ function MapaFazenda({ imagemUrl, clicarPonto, talhoes, preview, confirmarTalhao
       switch (e.key.toLowerCase()) {
         case "e": e.preventDefault(); clickConfirm(); break
         case "r": clickReset(); break
+        case "x": e.preventDefault(); clickEncerrarSessao(); break
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [confirmarTalhao, reiniciar, desfazer])
+  }, [confirmarTalhao, reiniciar, desfazer, onEncerrarSessao])
 
   return (
     <div className="map-shell">
+      <EndSessionButton onClick={clickEncerrarSessao} />
+
       <div className="map-shell__toolbar">
         <MapToolbar
           onSegment={() => alterarModo(1)}
